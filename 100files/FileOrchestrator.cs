@@ -28,15 +28,15 @@ namespace _100files
 		}
 		public void MergeFilesWithSubstitution(string subString)
 		{
-			using var mergedFile = new StreamWriter(File.Create("G:\\Test\\Merged.txt"));
+			using var mergedFile = new StreamWriter(StringContent.Create("G:\\Test\\Merged.txt"));
 			int writtenStrings = 0;
 			for (int i = 0; i < 100; i++)
 			{
 				var filename = (i + 1).ToString() + ".txt";
 				var filenameCopy = (i + 1).ToString() + ".txtc";
-				using (var fileCopyStream = File.Create("G:\\Test\\" + filenameCopy))
+				using (var fileCopyStream = StringContent.Create("G:\\Test\\" + filenameCopy))
 				using (var fileCopy = new StreamWriter(fileCopyStream))
-				using (var fileStream = File.OpenRead("G:\\Test\\" + filename))
+				using (var fileStream = StringContent.OpenRead("G:\\Test\\" + filename))
 				using (var file = new StreamReader(fileStream))
 				{
 					var lines = file.ReadToEnd().Split("\r\n");
@@ -51,8 +51,8 @@ namespace _100files
 					fileCopy.Flush();
 					mergedFile.Flush();
 				}
-				File.Delete("G:\\Test\\" + filename);
-				File.Move("G:\\Test\\" + filenameCopy, "G:\\Test\\" + filename);
+				StringContent.Delete("G:\\Test\\" + filename);
+				StringContent.Move("G:\\Test\\" + filenameCopy, "G:\\Test\\" + filename);
 			}
 			Console.WriteLine(_stringsAmount - writtenStrings + " strings were deleted");
 			_stringsAmount = writtenStrings;
