@@ -7,13 +7,17 @@ using System.Threading.Tasks;
 
 namespace _100files
 {
-	internal class DatabaseContext: DbContext
+	internal class DatabaseContext : DbContext
 	{
 		public DbSet<StringContent> stringContents => Set<StringContent>();
-		public DatabaseContext()
+		public DatabaseContext(bool isNew)
 		{
-			Database.EnsureDeleted();
-			Database.EnsureCreated();
+			if (isNew)
+			{
+				Database.EnsureDeleted();
+				Database.EnsureCreated();
+				ChangeTracker.AutoDetectChangesEnabled = false;
+			}
 		}
 		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 		{

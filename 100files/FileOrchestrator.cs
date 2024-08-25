@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Azure.Core.GeoJson;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,7 +18,7 @@ namespace _100files
 			{
 				Random generator = new();
 				Console.WriteLine("Writing " + name);
-				using (var file = new StreamWriter("G:\\Test\\" + name))
+				using (var file = new StreamWriter(name))
 				{
 					var task = ValueTask.CompletedTask;
 					for (int i = 0; i < 100000; i++)
@@ -28,15 +31,15 @@ namespace _100files
 		}
 		public void MergeFilesWithSubstitution(string subString)
 		{
-			using var mergedFile = new StreamWriter(StringContent.Create("G:\\Test\\Merged.txt"));
+			using var mergedFile = new StreamWriter(File.Create("Merged.txt"));
 			int writtenStrings = 0;
 			for (int i = 0; i < 100; i++)
 			{
 				var filename = (i + 1).ToString() + ".txt";
 				var filenameCopy = (i + 1).ToString() + ".txtc";
-				using (var fileCopyStream = StringContent.Create("G:\\Test\\" + filenameCopy))
+				using (var fileCopyStream = File.Create(filenameCopy))
 				using (var fileCopy = new StreamWriter(fileCopyStream))
-				using (var fileStream = StringContent.OpenRead("G:\\Test\\" + filename))
+				using (var fileStream = File.OpenRead(filename))
 				using (var file = new StreamReader(fileStream))
 				{
 					var lines = file.ReadToEnd().Split("\r\n");
@@ -48,11 +51,11 @@ namespace _100files
 							writtenStrings++;
 						}
 						else
-					fileCopy.Flush();
+							fileCopy.Flush();
 					mergedFile.Flush();
 				}
-				StringContent.Delete("G:\\Test\\" + filename);
-				StringContent.Move("G:\\Test\\" + filenameCopy, "G:\\Test\\" + filename);
+				File.Delete(filename);
+				File.Move(filenameCopy, filename);
 			}
 			Console.WriteLine(_stringsAmount - writtenStrings + " strings were deleted");
 			_stringsAmount = writtenStrings;
@@ -84,9 +87,46 @@ namespace _100files
 			return charList[gen.Next(charList.Length)];
 		}
 
-		void CopyFile()
+		public async Task ImportInDatabase()
 		{
-
+			using var mergedFile = new StreamReader(File.OpenRead("Merged.txt"));
+			int importedStrings = 0;
+			StringContent stringContent;
+			var list = new List<StringContent>();
+			int stringsBlock = 100000;
+			Stopwatch sw = new();
+			sw.Start();
+			var line = "";
+			using (DatabaseContext db = new DatabaseContext(true)) { };
+			while (line != null)
+			{
+				line = mergedFile.ReadLine();
+				if (line == "" || line == null) break;
+				var parsedLine = line.Split("||");
+				stringContent = new StringContent
+				{
+					Date = DateOnly.Parse(parsedLine[0]),
+					Latins = parsedLine[1],
+					Cyrillics = parsedLine[2],
+					Integer = int.Parse(parsedLine[3]),
+					Real = double.Parse(parsedLine[4])
+				};
+				//db.Add(stringContent);
+				importedStrings++;
+				list.Add(stringContent);
+				if (importedStrings % stringsBlock == 0)
+				{
+					using (var db = new DatabaseContext(false))
+					{
+						db.AddRange(list);
+						list.Clear();
+						db.SaveChanges();
+					}
+					Console.WriteLine(importedStrings + " strings was imported");
+				}
+			}
+			sw.Stop();
+			Console.WriteLine(sw.ElapsedMilliseconds / 1000.0);
 		}
 	}
 }
