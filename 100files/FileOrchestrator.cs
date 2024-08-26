@@ -1,5 +1,6 @@
 ﻿using Azure.Core.GeoJson;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,17 +15,16 @@ namespace _100files
 	class FileOrchestrator
 	{
 		public DateTime StartDate { get; set; } = new DateTime(DateTime.Today.Year - 5, 1, 1);
-		
-		const string _latinSymbols = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnPpQqRrSsTtUuVvWwXxYyZz";		
+
+		const string _latinSymbols = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnPpQqRrSsTtUuVvWwXxYyZz";
 		const string _cyrillicSymbols = "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя";
-		
+
 		int _stringsAmount = 0;
 		public Task GenerateFile(string name)
 		{
 			return Task.Run(() =>
 			{
 				Random generator = new();
-				Console.WriteLine("Writing " + name);
 				using (var file = new StreamWriter(name))
 				{
 					var task = ValueTask.CompletedTask;
@@ -36,14 +36,15 @@ namespace _100files
 				}
 			});
 		}
-		public void MergeFilesWithSubstitution(string subString)
+		public void MergeFilesWithSubstitution(string subString, string mergedDataFilename)
 		{
-			using var mergedFile = new StreamWriter(File.Create("Merged.txt"));
+			using var mergedFile = new StreamWriter(File.Create(mergedDataFilename));
 			int writtenStrings = 0;
+			var path = Path.GetDirectoryName(mergedDataFilename) + "\\";
 			for (int i = 0; i < 100; i++)
 			{
-				var filename = (i + 1).ToString() + ".txt";
-				var filenameCopy = (i + 1).ToString() + ".txtc";
+				var filename = path + (i + 1).ToString() + ".txt";
+				var filenameCopy = path + (i + 1).ToString() + ".txtc";
 				using (var fileCopyStream = File.Create(filenameCopy))
 				using (var fileCopy = new StreamWriter(fileCopyStream))
 				using (var fileStream = File.OpenRead(filename))
@@ -64,8 +65,39 @@ namespace _100files
 				File.Delete(filename);
 				File.Move(filenameCopy, filename);
 			}
-			Console.WriteLine(_stringsAmount - writtenStrings + " strings were deleted");
+			Console.WriteLine($"\n{_stringsAmount - writtenStrings} Строк  удалено");
 			_stringsAmount = writtenStrings;
+		}
+		public void ImportInDatabase(string filenameToImport, string tableName = "StringContent")
+		{
+			var connectionString = @"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;";
+			using (var dbConnection = new SqlConnection(connectionString))
+			{
+				var query = $"if OBJECT_ID(N'dbo.{tableName}', N'U') is null" +
+					"\r\ncreate table StringContent(" +
+					"\r\nId int identity," +
+					"\r\n\"Date\" date," +
+					"\r\nLatins nvarchar(10)," +
+					"\r\nCyrillics nvarchar(10)," +
+					"\r\n\"Integer\" int," +
+					"\r\n\"Real\" float\r\n)";
+				var command = new SqlCommand(query, dbConnection);
+				dbConnection.Open();
+				command.ExecuteNonQuery();
+				dbConnection.Close();
+			}
+			using var reader = new FileReader(filenameToImport, GetConvertTable(), _stringsAmount);
+			using var importer = new SqlBulkCopy(connectionString);
+
+			importer.ColumnMappings.Add(0, 1);
+			importer.ColumnMappings.Add(1, 2);
+			importer.ColumnMappings.Add(2, 3);
+			importer.ColumnMappings.Add(3, 4);
+			importer.ColumnMappings.Add(4, 5);
+
+			importer.DestinationTableName = tableName;
+			importer.BulkCopyTimeout = 3600;
+			importer.WriteToServer(reader);
 		}
 		string GenerateString(Random generator)
 		{
@@ -99,28 +131,6 @@ namespace _100files
 			convertTable[3] = str => int.Parse(str);
 			convertTable[4] = str => double.Parse(str);
 			return convertTable;
-		}
-
-		public void ImportInDatabase()
-		{
-			var connectionString = @"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;";
-			using var reader = new FileReader("G:\\Test\\Merged.txt", GetConvertTable(), _stringsAmount);
-
-			Stopwatch sw = new();
-			sw.Start();
-			using var importer = new SqlBulkCopy(connectionString);
-
-			importer.ColumnMappings.Add(0, 1);
-			importer.ColumnMappings.Add(1, 2);
-			importer.ColumnMappings.Add(2, 3);
-			importer.ColumnMappings.Add(3, 4);
-			importer.ColumnMappings.Add(4, 5);
-
-			importer.DestinationTableName = "StringContents";
-			importer.BulkCopyTimeout = 3600;
-			importer.WriteToServer(reader);
-			sw.Stop();
-			Console.WriteLine(sw.ElapsedMilliseconds / 1000.0);
 		}
 	}
 }

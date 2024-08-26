@@ -22,7 +22,7 @@ namespace _100files
 		string[]? _currentLineValues;
 		string? _currentLine;
 
-		static int _counter = 0;
+		int _counter = 0;
 		int _generalStringsAmount;
 
 		readonly Func<string, object>[] _convertTable;
@@ -52,20 +52,14 @@ namespace _100files
 
 		public bool Read()
 		{
-			if (_stream.EndOfStream)
-			{
-				Console.WriteLine($"Imported {_counter} strings");
-				Console.WriteLine($"{_generalStringsAmount - _counter} strings left");
-				return false;
-			}
-
 			_currentLine = _stream.ReadLine()!;
+			if (_currentLine == null)
+				return false;
 			_currentLineValues = _currentLine.Split("||");
 			_counter++;
 			if (_counter % 100000 == 0)
 			{
-				Console.WriteLine($"Imported {_counter} strings");
-				Console.WriteLine($"{_generalStringsAmount - _counter} strings left");
+				Console.WriteLine($"Импортировано {_counter} строк\t|\t{_generalStringsAmount - _counter} строк осталось");
 			}
 			return true;
 		}
