@@ -1,7 +1,9 @@
 ﻿using Azure.Core.GeoJson;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -12,6 +14,11 @@ namespace _100files
 	class FileOrchestrator
 	{
 		public DateTime StartDate { get; set; } = new DateTime(DateTime.Today.Year - 5, 1, 1);
+		
+		const string _latinSymbols = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnPpQqRrSsTtUuVvWwXxYyZz";		
+		const string _cyrillicSymbols = "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя";
+		
+		int _stringsAmount = 0;
 		public Task GenerateFile(string name)
 		{
 			return Task.Run(() =>
@@ -60,10 +67,6 @@ namespace _100files
 			Console.WriteLine(_stringsAmount - writtenStrings + " strings were deleted");
 			_stringsAmount = writtenStrings;
 		}
-
-		const string _latinSymbols = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnPpQqRrSsTtUuVvWwXxYyZz";
-		const string _cyrillicSymbols = "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя";
-		int _stringsAmount = 0;
 		string GenerateString(Random generator)
 		{
 			var randomLatins = new StringBuilder();
@@ -87,44 +90,35 @@ namespace _100files
 			return charList[gen.Next(charList.Length)];
 		}
 
-		public async Task ImportInDatabase()
+		Func<string, object>[] GetConvertTable()
 		{
-			using var mergedFile = new StreamReader(File.OpenRead("Merged.txt"));
-			int importedStrings = 0;
-			StringContent stringContent;
-			var list = new List<StringContent>();
-			int stringsBlock = 100000;
+			var convertTable = new Func<string, object>[5];
+			convertTable[0] = str => DateOnly.Parse(str);
+			convertTable[1] = str => str;
+			convertTable[2] = str => str;
+			convertTable[3] = str => int.Parse(str);
+			convertTable[4] = str => double.Parse(str);
+			return convertTable;
+		}
+
+		public void ImportInDatabase()
+		{
+			var connectionString = @"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;";
+			using var reader = new FileReader("G:\\Test\\Merged.txt", GetConvertTable(), _stringsAmount);
+
 			Stopwatch sw = new();
 			sw.Start();
-			var line = "";
-			using (DatabaseContext db = new DatabaseContext(true)) { };
-			while (line != null)
-			{
-				line = mergedFile.ReadLine();
-				if (line == "" || line == null) break;
-				var parsedLine = line.Split("||");
-				stringContent = new StringContent
-				{
-					Date = DateOnly.Parse(parsedLine[0]),
-					Latins = parsedLine[1],
-					Cyrillics = parsedLine[2],
-					Integer = int.Parse(parsedLine[3]),
-					Real = double.Parse(parsedLine[4])
-				};
-				//db.Add(stringContent);
-				importedStrings++;
-				list.Add(stringContent);
-				if (importedStrings % stringsBlock == 0)
-				{
-					using (var db = new DatabaseContext(false))
-					{
-						db.AddRange(list);
-						list.Clear();
-						db.SaveChanges();
-					}
-					Console.WriteLine(importedStrings + " strings was imported");
-				}
-			}
+			using var importer = new SqlBulkCopy(connectionString);
+
+			importer.ColumnMappings.Add(0, 1);
+			importer.ColumnMappings.Add(1, 2);
+			importer.ColumnMappings.Add(2, 3);
+			importer.ColumnMappings.Add(3, 4);
+			importer.ColumnMappings.Add(4, 5);
+
+			importer.DestinationTableName = "StringContents";
+			importer.BulkCopyTimeout = 3600;
+			importer.WriteToServer(reader);
 			sw.Stop();
 			Console.WriteLine(sw.ElapsedMilliseconds / 1000.0);
 		}
