@@ -1,0 +1,7 @@
+.scrollableList{
+    min-height: 20px;
+    max-height: 100px;
+    width: 20%;
+    overflow: hidden;
+    overflow-y: scroll;
+}
