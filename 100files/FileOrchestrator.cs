@@ -74,13 +74,13 @@ namespace _100files
 			using (var dbConnection = new SqlConnection(connectionString))
 			{
 				var query = $"if OBJECT_ID(N'dbo.{tableName}', N'U') is null" +
-					"\r\ncreate table StringContent(" +
+					$"\r\ncreate table {tableName}(" +
 					"\r\nId int identity," +
 					"\r\n\"Date\" date," +
 					"\r\nLatins nvarchar(10)," +
 					"\r\nCyrillics nvarchar(10)," +
 					"\r\n\"Integer\" int," +
-					"\r\n\"Real\" float\r\n)";
+					"\r\n\"Real\" float(24)\r\n)";
 				var command = new SqlCommand(query, dbConnection);
 				dbConnection.Open();
 				command.ExecuteNonQuery();
