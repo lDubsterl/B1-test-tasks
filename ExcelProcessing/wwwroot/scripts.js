@@ -1,5 +1,5 @@
 
-function sendFiles() {
+function sendFiles() { // тправка файлов на сервер
     let files = document.getElementById('fileSender').files;
     let data = new FormData();
     for (let i = 0; i < files.length; i++)
@@ -15,7 +15,7 @@ function sendFiles() {
             console.log(response);
             document.getElementById("filesForUpload").innerHTML = null;
             document.getElementById('uploadForm').reset();
-            setDbFileNamesList(response.data);
+            setDbFileNamesList(response.data); // в случае успешной отправки установка списка файлов, хранящихся в бд
         });
 }
 
@@ -23,7 +23,7 @@ function getFileData(filename) {
     axios.get("/api/ExcelProcessing/ExportDbInfo", { params: { fileName: filename } })
         .then(function (response) {
             downloadableFileFilename = filename;
-            displayTable(response.data);
+            displayTable(response.data); // отображение запрошенной таблицы
         });
 }
 
@@ -34,7 +34,7 @@ function getDbFileNamesList() {
         });
 }
 
-function addFilesToUploadList() {
+function addFilesToUploadList() { // создание списка имен загружаемых файлов
     let files = document.getElementById('fileSender').files;
     let element = document.getElementById("filesForUpload");
     let list = "";
@@ -48,16 +48,16 @@ function setDbFileNamesList(filenames) {
     let element = document.getElementById("dbFiles");
     element.innerHTML = null;
     for (let i = 0; i < filenames.length; i++) {
-        let li = document.createElement("li");
-        let button = document.createElement("button");
+        let li = document.createElement("li"); // создание строки списка
+        let button = document.createElement("button"); // создание кнопки
 
         button.setAttribute("class", "filenames");
         button.setAttribute("type", "button");
-        button.setAttribute("onclick", `getFileData("${filenames[i]}")`);
+        button.setAttribute("onclick", `getFileData("${filenames[i]}")`); // установка вызываемой функции при нажатии
         button.appendChild(document.createTextNode(filenames[i]));
 
-        li.appendChild(button);
-        element.appendChild(li);
+        li.appendChild(button); // добавление кнопки в строку
+        element.appendChild(li); // добавление строки списка
     }
 }
 
@@ -66,10 +66,11 @@ var downloadableFileFilename;
 function displayTable(tableData) {
     let btn = document.getElementById("exportButton");
     btn.href = downloadableFileFilename;
-    btn.download = downloadableFileFilename;
+    btn.download = downloadableFileFilename; // установка просматриваемого файла для возможности его скачивания
+
     let headers = document.getElementsByTagName("h2");
     document.getElementsByTagName("table")[0].style = "display: block";
-    document.getElementsByTagName("h1")[0].style = "display: block";
+    document.getElementsByTagName("h1")[0].style = "display: block"; // отображение информации о таблице
     headers[0].style = "display: block";
     headers[1].style = "display: block";
     headers[0].innerText = `за период с 01.01.${tableData[0].tableYear} по 31.12.${tableData[0].tableYear}`;
@@ -97,21 +98,21 @@ function displayTable(tableData) {
             classSell.style = "font-weight: bold; height: 30px";
             classSell.appendChild(document.createTextNode(classes[accountClass]));
             accountClass = Math.floor(row.accountId / 1000);
-        }
+        } // добавление строки описания класса в таблицу
 
-        let newRow = tbody.insertRow();
+        let newRow = tbody.insertRow(); // создание новой строки таблицы
         if (row.accountId < 1000)
             newRow.setAttribute("style", "font-weight: bold");
         let newCells = [];
         for (let i = 0; i < 7; i++)
-            newCells[i] = newRow.insertCell();
+            newCells[i] = newRow.insertCell(); // создание ячеек таблицы
 
         if (row.accountId == -1)
             row.accountId = "ПО КЛАССУ";
         if (row.accountId == -2)
             row.accountId = "БАЛАНС";
 
-        textNodes[0] = document.createTextNode(row.accountId);
+        textNodes[0] = document.createTextNode(row.accountId); // запись данных в ячейки
         textNodes[1] = document.createTextNode(row.inActive);
         textNodes[2] = document.createTextNode(row.inPassive);
         textNodes[3] = document.createTextNode(row.debt);
@@ -120,7 +121,7 @@ function displayTable(tableData) {
         textNodes[6] = document.createTextNode(row.outPassive);
 
         for (let i = 0; i < 7; i++) {
-            newCells[i].appendChild(textNodes[i]);
+            newCells[i].appendChild(textNodes[i]); // добавление ячеек в таблицу
         }
     }
 }
