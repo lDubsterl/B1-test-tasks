@@ -41,8 +41,8 @@ namespace _100files
 				return;
 			}
 			Console.Clear();
-			var tokenSource = new CancellationTokenSource();
-			var console = Task.Run(() => PrintProgressMessage("Идёт генерация файлов", tokenSource.Token));
+			var tokenSource = new CancellationTokenSource(); // токен для завершения генерации сообщений прогресса
+			var console = Task.Run(() => PrintProgressMessage("Идёт генерация файлов", tokenSource.Token)); // сообщение, чтобы пользователь не думал, что программа зависла
 
 			var fileOrchestrator = new FileOrchestrator();
 			var files = new Task[100];
@@ -50,10 +50,10 @@ namespace _100files
 			for (int i = 0; i < 100; i++)
 			{
 				var filename = path + (i + 1).ToString() + ".txt";
-				files[i] = fileOrchestrator.GenerateFile(filename);
+				files[i] = fileOrchestrator.GenerateFile(filename); // генерация каждого файла в отдельном потоке
 			}
-			Task.WaitAll(files);
-			tokenSource.Cancel();
+			Task.WaitAll(files); // ожидание завершения генерации
+			tokenSource.Cancel(); // запрос на завершение
 			await console;
 			string? choice;
 			do

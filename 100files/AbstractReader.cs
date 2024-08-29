@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace _100files
 {
-	public abstract class AbstractReader: IDataReader
+	public abstract class AbstractReader: IDataReader // класс, представляющий ридер данных из файла
 	{
 		public virtual int FieldCount { get; }
 
@@ -16,7 +16,7 @@ namespace _100files
 		protected string[]? _currentLineValues;
 		protected string? _currentLine;
 
-		protected readonly Func<string, object>[] _convertTable;
+		protected readonly Func<string, object>[] _convertTable; // таблица преобразований данных
 
 		int IDataReader.Depth => throw new NotImplementedException();
 

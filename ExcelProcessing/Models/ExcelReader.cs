@@ -7,33 +7,33 @@ using System.Text.RegularExpressions;
 
 namespace ExcelProcessing.Models
 {
-	public class ExcelReader : _100files.AbstractReader
+	public class ExcelReader : _100files.AbstractReader // ридер для xls файлов
 	{
 		public new int FieldCount { get; set; }
 
 		string _bankName;
 		string _year;
-		int foreignId = 1;
+		int foreignId = 1; //переменная для записи id в качестве внешнего ключа
 
 		Func<string, string[]>? _parseString;
 		IExcelDataReader _excelDataReader;
 		public ExcelReader(string filepath, Func<string, object>[] convertTable, int tableNumber) : base(filepath, convertTable)
 		{
-			_excelDataReader = ExcelReaderFactory.CreateReader(_stream.BaseStream);
+			_excelDataReader = ExcelReaderFactory.CreateReader(_stream.BaseStream); // создание объекта для чтения xls файла
 
-			_excelDataReader.Read();
-			_bankName = _excelDataReader.GetString(0);
+			_excelDataReader.Read(); // чтение очередной строки
+			_bankName = _excelDataReader.GetString(0); // получение string из 1 ячейки таблицы
 
-			_excelDataReader.SkipRows(1);
+			_excelDataReader.SkipRows(1); // пропуск строк
 			_excelDataReader.Read();
 
 			var str = _excelDataReader.GetString(0);
 			var regex = new Regex("\\d{4}");
-			var match = regex.Match(str);
+			var match = regex.Match(str); // извлечение года таблицы
 			_year = match.Value;
 
 			_excelDataReader.SkipRows(6);
-			ChooseTable(tableNumber, filepath);
+			ChooseTable(tableNumber, filepath); // выбор таблицы для записи в бд
 		}
 
 		public override bool Read()
@@ -45,17 +45,17 @@ namespace ExcelProcessing.Models
 			var line = lineId.Item1;
 			var id = lineId.Item2;
 
-			while (id < 1000)
+			while (id < 1000) // пропуск подводящих итоги строк
 			{
 				_excelDataReader.Read();
 				lineId = ReadRow();
 				line = lineId.Item1;
 				id = lineId.Item2;
-				if (line.ToString().Contains("БАЛАНС"))
+				if (line.ToString().Contains("БАЛАНС")) // при встрече строки с балансом - завершение чтения
 					return false;
 			}
 
-			_currentLineValues = _parseString!(line.ToString());
+			_currentLineValues = _parseString!(line.ToString()); // разбор строки на значения, которые запишутся в бд
 			foreignId++;
 			return true;
 		}
@@ -71,12 +71,12 @@ namespace ExcelProcessing.Models
 			var line = new StringBuilder();
 			do
 			{
-				var cell = _excelDataReader.GetValue(i);
+				var cell = _excelDataReader.GetValue(i); // получение значения из ячейки
 				if (cell == null)
 					break;
 				if (i == 0)
 					int.TryParse(cell.ToString()!, out accountId);
-				line.Append(cell + ";");
+				line.Append(cell + ";"); // формирование строки данных
 				i++;
 				if (i == _excelDataReader.FieldCount)
 					break;
@@ -85,7 +85,7 @@ namespace ExcelProcessing.Models
 		}
 		void ChooseTable(int tableNumber, string filename)
 		{
-			switch (tableNumber)
+			switch (tableNumber) // выбор способа разбора строки данных в зависимости от таблицы
 			{
 				case 1:
 					_parseString = (string line) =>

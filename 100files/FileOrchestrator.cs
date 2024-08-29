@@ -54,8 +54,8 @@ namespace _100files
 					foreach (var str in lines)
 						if (!str.Contains(subString) && str != "")
 						{
-							mergedFile.WriteLine(str);
-							fileCopy.WriteLine(str);
+							mergedFile.WriteLine(str); 
+							fileCopy.WriteLine(str); // создание копии файла без строк, содержащих подстроку
 							writtenStrings++;
 						}
 						else
@@ -63,14 +63,14 @@ namespace _100files
 					mergedFile.Flush();
 				}
 				File.Delete(filename);
-				File.Move(filenameCopy, filename);
+				File.Move(filenameCopy, filename); // замена исходного файла файлом без подстрок
 			}
 			Console.WriteLine($"\n{_stringsAmount - writtenStrings} Строк  удалено");
 			_stringsAmount = writtenStrings;
 		}
 		public void ImportInDatabase(string filenameToImport, string tableName = "StringContent")
 		{
-			var connectionString = @"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;";
+			var connectionString = @"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;"; // строка подключения к бд
 			using (var dbConnection = new SqlConnection(connectionString))
 			{
 				var query = $"if OBJECT_ID(N'dbo.{tableName}', N'U') is null" +
@@ -80,7 +80,7 @@ namespace _100files
 					"\r\nLatins nvarchar(10)," +
 					"\r\nCyrillics nvarchar(10)," +
 					"\r\n\"Integer\" int," +
-					"\r\n\"Real\" float(24)\r\n)";
+					"\r\n\"Real\" float(24)\r\n)"; // скрипт для создания таблицы в бд, если ее там нет
 				var command = new SqlCommand(query, dbConnection);
 				dbConnection.Open();
 				command.ExecuteNonQuery();
@@ -89,15 +89,15 @@ namespace _100files
 			using var reader = new FileReader(filenameToImport, GetConvertTable(), _stringsAmount);
 			using var importer = new SqlBulkCopy(connectionString);
 
-			importer.ColumnMappings.Add(0, 1);
+			importer.ColumnMappings.Add(0, 1); // сопоставление колонок импортируемых данных с колонками в таблице бд
 			importer.ColumnMappings.Add(1, 2);
 			importer.ColumnMappings.Add(2, 3);
 			importer.ColumnMappings.Add(3, 4);
 			importer.ColumnMappings.Add(4, 5);
 
 			importer.DestinationTableName = tableName;
-			importer.BulkCopyTimeout = 3600;
-			importer.WriteToServer(reader);
+			importer.BulkCopyTimeout = 3600; // максимальное время ожидания записи
+			importer.WriteToServer(reader); // запись в бд
 		}
 		string GenerateString(Random generator)
 		{
@@ -110,7 +110,7 @@ namespace _100files
 				randomCyrillics.Append(GetRandomChar(_cyrillicSymbols, generator));
 
 			int dateRange = (DateTime.Today - StartDate).Days;
-			string randomDate = DateOnly.FromDateTime(StartDate.AddDays(generator.Next(dateRange))).ToString();
+			string randomDate = DateOnly.FromDateTime(StartDate.AddDays(generator.Next(dateRange))).ToString(); //добавление к стартовой дате случайного количества дней
 
 			string randomInt = (1 + generator.Next(100000 - 1)).ToString();
 			string randomDouble = string.Format("{0:f8}", 1 + generator.NextDouble() * 19);
@@ -122,7 +122,7 @@ namespace _100files
 			return charList[gen.Next(charList.Length)];
 		}
 
-		Func<string, object>[] GetConvertTable()
+		Func<string, object>[] GetConvertTable() // таблица преобразований строкового представления данных в подходящие для импорта в бд
 		{
 			var convertTable = new Func<string, object>[5];
 			convertTable[0] = str => DateOnly.Parse(str);

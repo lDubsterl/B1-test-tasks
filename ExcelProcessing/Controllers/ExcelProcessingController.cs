@@ -27,24 +27,24 @@ namespace ExcelProcessing.Controllers
 				{
 					file.CopyTo(stream);
 				}
-				ImportData(file.FileName);
+				ImportData(file.FileName);  // импорт данных из файла в бд
 			}
-			return StatusCode(StatusCodes.Status200OK, GetStoringFilesNames());
+			return StatusCode(StatusCodes.Status200OK, GetStoringFilesNames()); // возврат списка файлов, хранящихся в бд
 		}
 
 		[HttpGet]
 		public List<string> GetStoringFilesNames()
 		{
-			return _db.Outcome.Select(row => row.Filename).Distinct().ToList();
+			return _db.Outcome.Select(row => row.Filename).Distinct().ToList(); // извлечение уникальных имен файлов в бд
 		}
 
-		string _lastRequestedFileName = "";
+		string _lastRequestedFileName = ""; // имя просматриваемого файла при очередном запросе
 
 		[HttpGet]
 		public ObjectResult ExportDbInfo(string fileName)
 		{
 			if (!System.IO.File.Exists(_lastRequestedFileName) && _lastRequestedFileName != "")
-				System.IO.File.Delete(_lastRequestedFileName);
+				System.IO.File.Delete(_lastRequestedFileName); // удаление сгенерированного файла для возможной загрузки из файловой системы
 			_lastRequestedFileName = "wwwroot\\" + fileName;
 			var info = _db.Outcome
 				.Where(outSaldo => outSaldo.Filename == fileName)
@@ -54,41 +54,41 @@ namespace ExcelProcessing.Controllers
 				.Select(el =>
 					new FullTable(el.BankName, el.TableYear, el.AccountId, el.Turnovers!.IncomeSaldo!.Active, el.Turnovers!.IncomeSaldo!.Passive,
 					el.Turnovers!.Debt, el.Turnovers!.Credit, el.Active, el.Passive))
-				.ToList();
+				.ToList(); // извлечение данных из бд
 			if (info.Count > 0)
 			{
-				var startAccount = info[0].AccountId / 100;
-				decimal[] subAccountSums = new decimal[6];
-				decimal[,] classSums = new decimal[9, 6];
+				var startAccount = info[0].AccountId / 100; // начальная группа счетов
+				decimal[] subAccountSums = new decimal[6]; // суммы по группе
+				decimal[,] classSums = new decimal[9, 6]; // суммы по классу
 
-				int[] classSumsPositions = new int[9];
+				int[] classSumsPositions = new int[9]; // позиция в таблице, куда нужно вставить суммы по классу
 				var ClassNumber = 1;
 				var tableSize = info.Count;
 				for (int i = 0; i < tableSize; i++)
 				{
-					if (info[i].AccountId / 100 != startAccount)
+					if (info[i].AccountId / 100 != startAccount) // при переходе в след группу счетов
 					{
 						var isNextClass = false;
 						info.Insert(i, new FullTable(info[i].BankName, info[i].TableYear, startAccount,
-						subAccountSums[0], subAccountSums[1], subAccountSums[2], subAccountSums[3], subAccountSums[4], subAccountSums[5]));
+						subAccountSums[0], subAccountSums[1], subAccountSums[2], subAccountSums[3], subAccountSums[4], subAccountSums[5])); // вставка итогов группы
 						if (info[i + 1].AccountId / 1000 != ClassNumber)
 						{
 							isNextClass = true;
-							classSumsPositions[ClassNumber - 1] = i + 1;
+							classSumsPositions[ClassNumber - 1] = i + 1; // запись индекса последней записи в классе 
 						}
 
 						for (int j = 0; j < subAccountSums.Length; j++)
 						{
-							classSums[ClassNumber - 1, j] += subAccountSums[j];
-							subAccountSums[j] = 0;
+							classSums[ClassNumber - 1, j] += subAccountSums[j]; // увеличение суммы по классу
+							subAccountSums[j] = 0; // обнуление суммы по группе
 						}
-						if (isNextClass)
+						if (isNextClass) // переход в след класс
 							ClassNumber++;
-						startAccount = info[i + 1].AccountId / 100;
+						startAccount = info[i + 1].AccountId / 100; // запомнить текущую группу
 						tableSize++;
 						continue;
 					}
-					subAccountSums[0] += info[i].InActive;
+					subAccountSums[0] += info[i].InActive; // суммы по группе
 					subAccountSums[1] += info[i].InPassive;
 					subAccountSums[2] += info[i].Debt;
 					subAccountSums[3] += info[i].Credit;
@@ -99,31 +99,31 @@ namespace ExcelProcessing.Controllers
 				var tableYear = info[0].TableYear;
 				var lastId = info.Last().AccountId;
 				info.Add(new FullTable(bankName, tableYear, lastId / 100,
-					subAccountSums[0], subAccountSums[1], subAccountSums[2], subAccountSums[3], subAccountSums[4], subAccountSums[5]));
+					subAccountSums[0], subAccountSums[1], subAccountSums[2], subAccountSums[3], subAccountSums[4], subAccountSums[5])); // добавление последней группы
 				classSumsPositions[^1] = info.Count;
 				for (int i = 0; i < subAccountSums.Length; i++)
-					classSums[8, i] += subAccountSums[i];
+					classSums[8, i] += subAccountSums[i]; // добавление суммы последнего класса
 				for (int i = 0; i < ClassNumber; i++)
 				{
 					info.Insert(classSumsPositions[i] + i, new FullTable(info[i].BankName, info[i].TableYear, -1,
-						classSums[i, 0], classSums[i, 1], classSums[i, 2], classSums[i, 3], classSums[i, 4], classSums[i, 5]));
+						classSums[i, 0], classSums[i, 1], classSums[i, 2], classSums[i, 3], classSums[i, 4], classSums[i, 5])); // вставка сумм по классу в таблицу
 				}
 				var balance = new decimal[6];
 				for (int i = 0; i < 9; i++)
 					for (int j = 0; j < 6; j++)
-						balance[j] += classSums[i, j];
+						balance[j] += classSums[i, j]; // подсчет итогового баланса
 				info.Add(new FullTable(bankName, tableYear, -2,
-					balance[0], balance[1], balance[2], balance[3], balance[4], balance[5]));
-				Task.Run(() => ExportInXls(info, fileName));
+					balance[0], balance[1], balance[2], balance[3], balance[4], balance[5])); // добавление итогового баланса в таблицу
+				Task.Run(() => ExportInXls(info, fileName)); // запись данных в xls файл
 			}
 			return StatusCode(StatusCodes.Status200OK, info);
 		}
 		void ExportInXls(List<FullTable> info, string filename)
 		{
 			var workBook = WorkBook.Create(ExcelFileFormat.XLS);
-			var workSheet = workBook.CreateWorkSheet("Лист 1");
-			workSheet.Merge("A2:G2");
-			workSheet["A2"].Value = "Оборотная ведомость по балансовым счетам";
+			var workSheet = workBook.CreateWorkSheet("Лист 1"); // создание xls файла
+			workSheet.Merge("A2:G2"); // объединение ячеек в таблице
+			workSheet["A2"].Value = "Оборотная ведомость по балансовым счетам"; // запись значений в таблицу
 			workSheet.Merge("A3:G3");
 			workSheet["A3"].Value = $"За период с 01.01.{info[0].TableYear} по 31.12.{info[0].TableYear}";
 			workSheet.Merge("A4:G4");
@@ -156,15 +156,15 @@ namespace ExcelProcessing.Controllers
 		"КЛАСС  9  Расходы банка"
 		];
 
-			int rowCoordinate = 9;
-			var accountClass = 0;
+			int rowCoordinate = 9; // строка, с которой начинается запись данных
+			var accountClass = 0; // старотовый класс
 			foreach (var row in info)
 			{
-				if ((accountClass != row.AccountId / 1000) && (row.AccountId >= 1000))
+				if ((accountClass != row.AccountId / 1000) && (row.AccountId >= 1000)) // добавление строки классов при переходе в новый класс
 				{
 					var coordinate = $"A{rowCoordinate}:G{rowCoordinate}";
 					workSheet.Merge(coordinate);
-					workSheet[$"A{rowCoordinate}"].Value = classes[accountClass++];
+					workSheet[$"A{rowCoordinate}"].Value = classes[accountClass++]; // добавление строки описания класса
 					rowCoordinate++;
 				}
 				workSheet[$"A{rowCoordinate}"].Value = row.AccountId;
@@ -174,7 +174,7 @@ namespace ExcelProcessing.Controllers
 				if (row.AccountId == -2)
 
 					workSheet[$"A{rowCoordinate}"].Value = "БАЛАНС";
-				workSheet[$"B{rowCoordinate}"].Value = row.InActive;
+				workSheet[$"B{rowCoordinate}"].Value = row.InActive; // запись данных в таблицу
 				workSheet[$"C{rowCoordinate}"].Value = row.InPassive;
 				workSheet[$"D{rowCoordinate}"].Value = row.Debt;
 				workSheet[$"E{rowCoordinate}"].Value = row.Credit;
@@ -183,19 +183,19 @@ namespace ExcelProcessing.Controllers
 
 				for (int i = 0; i < 6; i++)
 				{
-					workSheet[$"{columns[i]}{rowCoordinate}"].FormatString = "0.0000";
+					workSheet[$"{columns[i]}{rowCoordinate}"].FormatString = "0.0000"; // форматирование в числовой формат
 					workSheet.AutoSizeColumn(i);
 				}
 
 				rowCoordinate++;
 			}
 			var newName = filename.Replace(".xls", "d.xls");
-			workBook.SaveAs(newName);
+			workBook.SaveAs(newName); // запись файла на диск в директорию сервера
 			if (!System.IO.File.Exists("wwwroot\\" + filename))
 				System.IO.File.Move(newName, "wwwroot\\" + filename);
 		}
 
-		Func<string, object>[] GetConvertTable()
+		Func<string, object>[] GetConvertTable() // конвертация по аналогии с 1 заданием
 		{
 			var convertTable = new Func<string, object>[7];
 			convertTable[0] = str => str;
@@ -207,7 +207,7 @@ namespace ExcelProcessing.Controllers
 			convertTable[6] = num => int.Parse(num);
 			return convertTable;
 		}
-		void ImportData(string filepath)
+		void ImportData(string filepath) // импорт в бд по аналогии с 1 заданием
 		{
 			var connectionString = @"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;";
 			string[] tables = ["Income_Saldo", "Turnovers", "Outcome_Saldo"];
@@ -229,7 +229,7 @@ namespace ExcelProcessing.Controllers
 				importer.ColumnMappings.Add(4, 5);
 				importer.ColumnMappings.Add(5, 6);
 
-				importer.DestinationTableName = tables[i - 1];
+				importer.DestinationTableName = tables[i - 1]; // таблица для записи
 				importer.BulkCopyTimeout = 3600;
 				importer.WriteToServer(reader);
 			}

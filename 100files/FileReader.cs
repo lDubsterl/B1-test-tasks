@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace _100files
 {
-	internal class FileReader : AbstractReader
+	internal class FileReader : AbstractReader //ридер для файлов формата, указанного в задании
 	{
 
 		public override int FieldCount
@@ -20,7 +20,7 @@ namespace _100files
 		}
 
 		int _counter = 0;
-		int _generalStringsAmount;
+		int _generalStringsAmount; // общее кол-во строк в файле
 		public FileReader(string filepath, Func<string, object>[] convertTable, int generalStringsAmount) : base(filepath, convertTable)
 		{
 			_generalStringsAmount = generalStringsAmount;
@@ -31,7 +31,7 @@ namespace _100files
 			_currentLine = _stream.ReadLine()!;
 			if (_currentLine == null)
 				return false;
-			_currentLineValues = _currentLine.Split("||");
+			_currentLineValues = _currentLine.Split("||"); // разделение строки на отдельные элементы
 			_counter++;
 			if (_counter % 100000 == 0)
 			{

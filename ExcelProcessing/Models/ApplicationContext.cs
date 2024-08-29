@@ -2,7 +2,7 @@
 
 namespace ExcelProcessing.Models
 {
-	public class ApplicationContext : DbContext
+	public class ApplicationContext : DbContext // контекст для работы с бд
 	{
 		public DbSet<IncomeSaldo> Income { get; set; }
 		public DbSet<Turnovers> Turnovers { get; set; }
@@ -19,7 +19,7 @@ namespace ExcelProcessing.Models
 		{
 			configurationBuilder
 					.Properties<decimal>()
-					.HavePrecision(19, 4);
+					.HavePrecision(19, 4); // установка 4 знаков после запятой для чисел в бд
 		}
 	}
 }
