@@ -11,18 +11,49 @@
 
   <body>
     <iframe name="dummyframe" id="dummyframe" style="display: none"></iframe>
-    <form id="uploadForm" onsubmit="sendFiles()" target="dummyframe">
-      <p>
-        <input
-          id="fileSender"
-          oninput="addFilesToUploadList()"
-          type="file"
-          accept=".xls, .xlsx"
-          multiple />
-      </p>
-      <p><input type="submit" value="Отправить" /></p>
-    </form>
-    <ul id="filesForUpload" class="scrollableList"></ul>
-    <ul id="dbFiles" class="scrollableList"></ul>
+    <div class="row" style="margin-left: 5%">
+      <h4 style="margin-top: -1px; margin-bottom: -2px">Загрузка файлов в базу данных</h3>
+      <form id="uploadForm" onsubmit="sendFiles()" target="dummyframe">
+        <p>
+          <input
+            id="fileSender"
+            oninput="addFilesToUploadList()"
+            type="file"
+            accept=".xls, .xlsx"
+            multiple />
+        </p>
+        <p><input type="submit" value="Отправить" /></p>
+      </form>
+    </div>
+    <div class="row"><ul id="filesForUpload" class="scrollableList"></ul></div>
+    <div class="row"><a id="exportButton">Скачать</a></div>
+    <div class="row" style="margin-left: 5%">
+      <ul id="dbFiles" class="scrollableList" style="margin-bottom: 10px"></ul>
+      <button onclick="getDbFileNamesList()" style="text-align: center; width: 100%">
+        Обновить список хранящихся файлов
+      </button>
+    </div>
+    <h1 class="tableTitle">Оборотная ведомость по балансовым счетам</h1>
+    <h2 class="tableTitle"></h2>
+    <h2 class="tableTitle"></h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col" rowspan="2">Б/сч</th>
+          <th scope="col" colspan="2">Входящее сальдо</th>
+          <th scope="col" colspan="2">Обороты</th>
+          <th scope="col" colspan="2">Исходящее сальдо</th>
+        </tr>
+        <tr>
+          <th scope="col">Актив</th>
+          <th scope="col">Пассив</th>
+          <th scope="col">Дебет</th>
+          <th scope="col">Кредит</th>
+          <th scope="col">Актив</th>
+          <th scope="col">Пассив</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </body>
 </html>

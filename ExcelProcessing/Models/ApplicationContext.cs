@@ -2,7 +2,7 @@
 
 namespace ExcelProcessing.Models
 {
-	public class ApplicationContext: DbContext
+	public class ApplicationContext : DbContext
 	{
 		public DbSet<IncomeSaldo> Income { get; set; }
 		public DbSet<Turnovers> Turnovers { get; set; }
@@ -15,6 +15,11 @@ namespace ExcelProcessing.Models
 		{
 			optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=testtaskdb;Trusted_Connection=True;");
 		}
-		
+		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+		{
+			configurationBuilder
+					.Properties<decimal>()
+					.HavePrecision(19, 4);
+		}
 	}
 }

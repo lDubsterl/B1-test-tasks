@@ -1,7 +1,47 @@
 .scrollableList{
-    min-height: 20px;
-    max-height: 100px;
-    width: 20%;
+    min-height: 50px;
+    max-height: 150px;
+    min-width: 100px;
+    width: auto;
     overflow: hidden;
     overflow-y: scroll;
+    text-align: left;
+}
+
+.fileNames{
+    line-height: 1.3;
+}
+
+table{
+    border-collapse: collapse;
+    border: 2px solid;
+    letter-spacing: 0.5px;
+    table-layout: auto;
+    width: min-content;
+    margin: 0px auto;
+    display: none;
+}
+
+h2 + table{
+    margin-top: 10px;
+}
+
+th, td{
+    border: 1px solid;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.tableTitle{
+    margin: 0;
+    text-align: center;
+    display: none;
+}
+
+.row{
+    display: inline-block;
+    width: 20%;
+    vertical-align: top;
+    text-align: center;
 }
